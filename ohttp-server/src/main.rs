@@ -3,7 +3,6 @@
 use std::{
     io::Cursor,
     net::SocketAddr,
-    path::PathBuf,
     sync::{Arc, Mutex},
 };
 
@@ -22,20 +21,12 @@ type Res<T> = Result<T, Box<dyn std::error::Error>>;
 #[structopt(name = "ohttp-server", about = "Serve oblivious HTTP requests.")]
 struct Args {
     /// The address to bind to.
-    #[structopt(default_value = "127.0.0.1:9443")]
+    #[structopt(default_value = "127.0.0.1:8900")]
     address: SocketAddr,
 
     /// When creating message/bhttp, use the indeterminate-length form.
     #[structopt(long, short = "n", alias = "indefinite")]
     indeterminate: bool,
-
-    /// Certificate to use for serving.
-    #[structopt(long, short = "c", default_value = concat!(env!("CARGO_MANIFEST_DIR"), "/server.crt"))]
-    certificate: PathBuf,
-
-    /// Key for the certificate to use for serving.
-    #[structopt(long, short = "k", default_value = concat!(env!("CARGO_MANIFEST_DIR"), "/server.key"))]
-    key: PathBuf,
 }
 
 impl Args {
@@ -139,9 +130,6 @@ async fn main() -> Res<()> {
         .and(warp::any().map(move || mode))
         .and_then(serve);
     warp::serve(filter)
-        .tls()
-        .cert_path(args.certificate)
-        .key_path(args.key)
         .run(args.address)
         .await;
 
