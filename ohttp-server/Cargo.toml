@@ -10,17 +10,18 @@ nss = ["ohttp/nss"]
 rust-hpke = ["ohttp/rust-hpke"]
 
 [dependencies]
-env_logger = {version = "0.10", default-features = false}
+env_logger = { version = "0.10", default-features = false }
 hex = "0.4"
 structopt = "0.3"
 tokio = { version = "1", features = ["full"] }
 warp = { version = "0.3", features = ["tls"] }
+log = "0.4"
 
 [dependencies.bhttp]
-path= "../bhttp"
+path = "../bhttp"
 features = ["bhttp", "write-http"]
 
 [dependencies.ohttp]
-path= "../ohttp"
+path = "../ohttp"
 features = ["server"]
 default-features = false

@@ -8,6 +8,7 @@ use std::{
 };
 
 use bhttp::{Message, Mode, StatusCode};
+use log::{error, info};
 use ohttp::{
     hpke::{Aead, Kdf, Kem},
     KeyConfig, Server as OhttpServer, SymmetricSuite,
@@ -75,16 +76,27 @@ async fn serve(
     ohttp: Arc<Mutex<OhttpServer>>,
     mode: Mode,
 ) -> Result<impl warp::Reply, std::convert::Infallible> {
+    info!("Received request with body size: {} bytes", body.len());
+
     match generate_reply(&ohttp, &body[..], mode) {
-        Ok(resp) => Ok(warp::http::Response::builder()
-            .header("Content-Type", "message/ohttp-res")
-            .body(resp)),
+        Ok(resp) => {
+            info!(
+                "Request processed successfully. Response size: {} bytes",
+                resp.len()
+            );
+            Ok(warp::http::Response::builder()
+                .header("Content-Type", "message/ohttp-res")
+                .body(resp))
+        }
         Err(e) => {
+            let error_message = format!("{:?}", e);
             if let Ok(oe) = e.downcast::<::ohttp::Error>() {
+                error!("OHTTP Error: {:?}", oe);
                 Ok(warp::http::Response::builder()
                     .status(422)
                     .body(Vec::from(format!("Error: {oe:?}").as_bytes())))
             } else {
+                error!("Request error: {}", error_message);
                 Ok(warp::http::Response::builder()
                     .status(400)
                     .body(Vec::from(&b"Request error"[..])))
