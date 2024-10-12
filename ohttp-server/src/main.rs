@@ -1,3 +1,5 @@
+// server.rs
+
 #![deny(warnings, clippy::pedantic)]
 
 use std::{
@@ -48,12 +50,20 @@ fn generate_reply(
     let (request, server_response) = ohttp.decapsulate(enc_request)?;
     let bin_request = Message::read_bhttp(&mut Cursor::new(&request[..]))?;
 
+    // Extract the request body
+    let request_body = String::from_utf8(bin_request.body.clone()).unwrap_or_default();
+    // Parse the body as URL-encoded form data
+    let params =
+        url::form_urlencoded::parse(request_body.as_bytes()).collect::<Vec<(String, String)>>();
+    // Find the 'name' parameter
+    let name_param = params.iter().find(|(key, _)| key == "name");
+
     let mut bin_response = Message::response(StatusCode::OK);
-    bin_response.write_content(b"Received:\r\n---8<---\r\n");
-    let mut tmp = Vec::new();
-    bin_request.write_http(&mut tmp)?;
-    bin_response.write_content(&tmp);
-    bin_response.write_content(b"--->8---\r\n");
+    if let Some((_, name)) = name_param {
+        bin_response.write_content(format!("Hello, {}!\r\n", name).as_bytes());
+    } else {
+        bin_response.write_content(b"Hello, unknown user!\r\n");
+    }
 
     let mut response = Vec::new();
     bin_response.write_bhttp(mode, &mut response)?;
@@ -129,9 +139,8 @@ async fn main() -> Res<()> {
         .and(with_ohttp(Arc::new(Mutex::new(ohttp))))
         .and(warp::any().map(move || mode))
         .and_then(serve);
-    warp::serve(filter)
-        .run(args.address)
-        .await;
+
+    warp::serve(filter).run(args.address).await;
 
     Ok(())
 }
