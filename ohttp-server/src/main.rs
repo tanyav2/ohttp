@@ -51,10 +51,12 @@ fn generate_reply(
     let bin_request = Message::read_bhttp(&mut Cursor::new(&request[..]))?;
 
     // Extract the request body
-    let request_body = String::from_utf8(bin_request.body.clone()).unwrap_or_default();
+    let request_body = String::from_utf8(bin_request.content().to_vec()).unwrap_or_default();
     // Parse the body as URL-encoded form data
-    let params =
-        url::form_urlencoded::parse(request_body.as_bytes()).collect::<Vec<(String, String)>>();
+    let params: Vec<(String, String)> = url::form_urlencoded::parse(request_body.as_bytes())
+        .map(|(k, v)| (k.into_owned(), v.into_owned()))
+        .collect();
+
     // Find the 'name' parameter
     let name_param = params.iter().find(|(key, _)| key == "name");
 
